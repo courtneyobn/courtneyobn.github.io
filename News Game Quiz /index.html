@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Nebraskan Match Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Tailwind configuration for custom colors
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'nebraska-red': '#E41C38',
+                        'dn-red': '#FF0000',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Card Flip Styles */
+        .card-container {
+            perspective: 1000px;
+            height: 120px; 
+        }
+
+        .card {
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s, box-shadow 0.2s;
+            transform-style: preserve-3d;
+            position: relative;
+            cursor: pointer;
+            border-radius: 0.75rem; /* rounded-xl */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Highlight selected card for user feedback */
+        .card.selected {
+            /* Bright blue border for selected state */
+            box-shadow: 0 0 0 4px rgba(0, 191, 255, 0.8), 0 4px 6px rgba(0, 0, 0, 0.2); 
+        }
+        
+        .card.flipped {
+            /* Flips to show the front content */
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem; 
+            text-align: center;
+        }
+
+        /* Front face styles (Headline/Category) */
+        .card-front {
+            background-color: #f3f4f6; /* gray-100 */
+            border: 2px solid #D1D5DB; /* gray-300 */
+            transform: rotateY(180deg); 
+            word-break: break-word;
+            font-size: 0.75rem; /* Small font size for headlines (text-xs) */
+            line-height: 1rem;
+            font-weight: 500;
+        }
+        
+        /* Category cards can have a slightly larger font */
+        .card-front.category {
+             font-size: 1rem; /* text-base */
+             font-weight: 700;
+        }
+
+        /* Back face styles (The "DN" in red) - This is the initial view */
+        .card-back {
+            background-color: white;
+            color: #FF0000; /* dn-red */
+            transform: rotateY(0deg); 
+            font-size: 2rem; 
+            font-weight: 900;
+            border: 4px solid #E41C38; /* nebraska-red border */
+        }
+
+        /* Disabled matched card look */
+        .matched {
+            pointer-events: none;
+            opacity: 0.4; 
+            transition: opacity 0.5s;
+            box-shadow: none !important;
+        }
+
+        /* Grid setup for 24 cards (4x6 or similar) */
+        #game-board {
+             /* Use a 4-column grid for small screens */
+             grid-template-columns: repeat(4, minmax(0, 1fr));
+             gap: 0.75rem;
+        }
+
+        @media (min-width: 640px) {
+            #game-board {
+                /* Use 6 columns on larger screens */
+                grid-template-columns: repeat(6, minmax(0, 1fr));
+            }
+        }
+
+        /* Shake animation for wrong match */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
+        }
+
+        .shaking {
+            animation: shake 0.3s;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col font-sans p-4">
+    <div class="max-w-6xl w-full mx-auto">
+        <!-- Header -->
+        <header class="text-center mb-6">
+            <h1 class="text-3xl sm:text-4xl font-bold text-nebraska-red">DN Headline Match</h1>
+            <p class="text-sm sm:text-lg text-gray-600 mt-1">Flip cards freely and press 'Check Match' when you've found a pair.</p>
+        </header>
+
+        <!-- Game Info & Stats & Control -->
+        <div class="bg-white p-4 rounded-lg shadow-md mb-6 border border-gray-200">
+            <div class="flex flex-col sm:flex-row justify-between items-center text-sm sm:text-xl">
+                <div id="score" class="font-semibold text-gray-800 mb-2 sm:mb-0">Matches: 0 / 12</div>
+                <!-- Match Button (Styling controlled by JS: white/red enabled, gray disabled) -->
+                <button id="match-button" disabled class="px-4 py-2 font-semibold rounded-lg transition duration-150 shadow-md disabled:opacity-50 text-base">Check Match (0 Selected)</button>
+            </div>
+            <!-- Feedback message area -->
+            <p id="feedback-message" class="text-center mt-2 text-sm font-medium h-4"></p>
+        </div>
+        
+        <!-- Game Board -->
+        <div id="game-board" class="grid">
+            <!-- Cards will be injected here by JavaScript -->
+        </div>
+
+        <!-- Modal/Overlay for Game End -->
+        <div id="modal-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden items-center justify-center p-4 z-50">
+            <div class="bg-white p-6 sm:p-8 rounded-xl shadow-2xl text-center w-full max-w-md transform transition-all duration-300 scale-100">
+                <h2 id="modal-title" class="text-2xl sm:text-3xl font-bold mb-4"></h2>
+                <p id="modal-message" class="text-sm sm:text-base text-gray-700 mb-6"></p>
+                <button id="restart-button" class="px-6 py-3 bg-nebraska-red text-white font-semibold rounded-lg hover:bg-red-700 transition duration-150 shadow-lg">Play Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const cardPairsData = [
+            { headline: "Daily Nebraskan staffer receives College Photographer of the Year award", category: "News" },
+            { headline: "UNL to combine journalism, broadcasting, faculty to leave amid budget cuts", category: "News" },
+            { headline: "‘I’m here because I care’: Student workers behind UNL’s proposed budget cuts", category: "News" },
+            { headline: "The bar, The Bar: ‘The little crap hole that could’", category: "Culture" },
+            { headline: "REVIEW: ‘Good Boy:’ Dog vs. the World", category: "Culture" },
+            { headline: "UNITE holds Honor Song ceremony for Indigenous Peoples’ Day", category: "Culture" },
+            { headline: "Adriano’s career day fuels Nebraska sweep over Michigan State", category: "Sport" },
+            { headline: "Five players who stood out in Nebraska’s 28-21 win against Northwestern", category: "Sport" },
+            { headline: "Report card: Nebraska bounces back, becomes bowl eligible with win vs. Northwestern", category: "Sport" },
+            { headline: "Student teachers should be paid for their labor", category: "Opinion" },
+            { headline: "Physical media is inconvenient: Maybe that’s a good thing", category: "Opinion" },
+            { headline: "Students or state – ASUN’s divided vote on the ‘Cornhusker Clink’", category: "Opinion" }
+        ];
+
+        let gameBoard = [];
+        let selectedCards = []; // Tracks the 0, 1, or 2 cards the user has selected for matching
+        let matchedPairs = 0;
+        let lockBoard = false; 
+
+        const gameBoardElement = document.getElementById('game-board');
+        const scoreElement = document.getElementById('score');
+        const modalOverlay = document.getElementById('modal-overlay');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMessage = document.getElementById('modal-message');
+        const restartButton = document.getElementById('restart-button');
+        let matchButton; 
+        let feedbackMessage; // Variable to hold the new feedback element
+
+        // Utility to shuffle an array (Fisher-Yates)
+        function shuffle(array) {
+            let currentIndex = array.length, randomIndex;
+            while (currentIndex !== 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                [array[currentIndex], array[randomIndex]] = [
+                    array[randomIndex], array[currentIndex]];
+            }
+            return array;
+        }
+
+        // Prepares the 24 cards for the game
+        function createBoard() {
+            gameBoard = [];
+            let idCounter = 0;
+
+            cardPairsData.forEach(pair => {
+                const matchId = pair.category;
+
+                // Card 1: Headline
+                gameBoard.push({
+                    id: idCounter++,
+                    content: pair.headline,
+                    matchId: matchId,
+                    type: 'headline',
+                    isFlipped: false,
+                    isMatched: false
+                });
+
+                // Card 2: Category
+                gameBoard.push({
+                    id: idCounter++,
+                    content: pair.category,
+                    matchId: matchId,
+                    type: 'category',
+                    isFlipped: false,
+                    isMatched: false
+                });
+            });
+
+            gameBoard = shuffle(gameBoard);
+        }
+
+        // Renders the board elements to the DOM
+        function renderBoard() {
+            gameBoardElement.innerHTML = '';
+            gameBoard.forEach(card => {
+                const cardContainer = document.createElement('div');
+                cardContainer.classList.add('card-container');
+                cardContainer.dataset.cardId = card.id;
+
+                const cardElement = document.createElement('div');
+                cardElement.classList.add('card', 'hover:shadow-lg', 'transition-shadow');
+                
+                // Card starts unflipped (DN face visible)
+                if (card.isFlipped) {
+                    cardElement.classList.add('flipped');
+                }
+                if (card.isMatched) {
+                    cardElement.classList.add('matched');
+                }
+                cardElement.addEventListener('click', () => handleCardClick(card.id));
+
+                // Back face (The "DN")
+                const cardBack = document.createElement('div');
+                cardBack.classList.add('card-face', 'card-back');
+                cardBack.innerHTML = 'DN';
+
+                // Front face (Content: Headline or Category)
+                const cardFront = document.createElement('div');
+                cardFront.classList.add('card-face', 'card-front');
+                if (card.type === 'category') {
+                    cardFront.classList.add('category'); // Apply category-specific styling
+                }
+                cardFront.textContent = card.content;
+
+                cardElement.appendChild(cardBack);
+                cardElement.appendChild(cardFront);
+                cardContainer.appendChild(cardElement);
+                gameBoardElement.appendChild(cardContainer);
+            });
+            // updateStats call moved to initializeGame after matchButton is defined
+            // updateStats(); 
+        }
+
+        // Updates the score and button display and styling
+        function updateStats() {
+            scoreElement.textContent = `Matches: ${matchedPairs} / ${cardPairsData.length}`;
+            
+            // Update match button state and text
+            // CHECK: matchButton is defined here
+            if (!matchButton) return; 
+
+            matchButton.disabled = selectedCards.length !== 2 || lockBoard;
+            matchButton.textContent = `Check Match (${selectedCards.length} Selected)`;
+            
+            // First, remove all dynamic styling classes
+            matchButton.classList.remove('bg-gray-400', 'text-white', 'hover:bg-gray-500', 'bg-white', 'text-nebraska-red', 'border', 'border-nebraska-red', 'hover:bg-gray-100', 'bg-green-600', 'bg-red-600', 'shaking');
+
+            // Apply styling based on state
+            if (matchButton.disabled) {
+                // Disabled state: Gray background, white text
+                matchButton.classList.add('bg-gray-400', 'text-white', 'hover:bg-gray-500');
+            } else {
+                // Enabled state: White background, red text, gray hover
+                matchButton.classList.add('bg-white', 'text-nebraska-red', 'border', 'border-nebraska-red', 'hover:bg-gray-100');
+            }
+        }
+
+        // Logic for handling a card click (selection/deselection)
+        function handleCardClick(cardId) {
+            if (lockBoard) return;
+
+            const cardIndex = gameBoard.findIndex(c => c.id === cardId);
+            const card = gameBoard[cardIndex];
+            const cardElement = gameBoardElement.querySelector(`[data-card-id="${cardId}"] > .card`);
+
+            if (card.isMatched) {
+                return; // Ignore matched cards
+            }
+
+            const isCurrentlySelected = selectedCards.some(c => c.id === cardId);
+
+            if (isCurrentlySelected) {
+                // Deselect: flip back and remove from selection
+                card.isFlipped = false;
+                cardElement.classList.remove('flipped', 'selected');
+                selectedCards = selectedCards.filter(c => c.id !== cardId);
+            } else {
+                // Select: flip forward and add to selection
+                
+                // If two cards are already selected, unselect the oldest one first
+                if (selectedCards.length >= 2) {
+                    const oldestCard = selectedCards.shift(); // Remove the first element
+                    oldestCard.isFlipped = false;
+                    const oldestElement = gameBoardElement.querySelector(`[data-card-id="${oldestCard.id}"] > .card`);
+                    oldestElement.classList.remove('flipped', 'selected');
+                }
+
+                card.isFlipped = true;
+                cardElement.classList.add('flipped', 'selected');
+                selectedCards.push(card);
+            }
+            
+            updateStats();
+        }
+
+        // Triggered by the "Check Match" button
+        function checkMatch() {
+            if (selectedCards.length !== 2) {
+                return;
+            }
+            
+            // Set lock and disable button immediately
+            lockBoard = true;
+            updateStats(); 
+            
+            const [card1, card2] = selectedCards;
+            
+            // Match condition: same matchId AND different types (Headline vs. Category)
+            const isMatch = card1.matchId === card2.matchId && card1.type !== card2.type;
+
+            if (isMatch) {
+                // Provide instant feedback
+                feedbackMessage.textContent = "✅ Match Found! Category: " + card1.matchId;
+                feedbackMessage.classList.remove('text-nebraska-red');
+                feedbackMessage.classList.add('text-green-600');
+
+                // Temporary green button style
+                matchButton.classList.add('bg-green-600', 'text-white', 'hover:bg-green-700');
+                matchButton.classList.remove('bg-white', 'text-nebraska-red', 'border', 'border-nebraska-red', 'hover:bg-gray-100');
+
+
+                // Match found: permanently disable cards after brief pause
+                setTimeout(() => {
+                    disableCards(card1, card2); 
+                    matchedPairs++; // Point/Match gain
+                    resetTurn();
+                    if (matchedPairs === cardPairsData.length) {
+                        endGame('win');
+                    }
+                }, 500);
+                
+            } else {
+                // Provide instant feedback
+                feedbackMessage.textContent = "❌ Not a match. Cards will shake and flip back.";
+                feedbackMessage.classList.remove('text-green-600');
+                feedbackMessage.classList.add('text-nebraska-red');
+
+                // Shake the button for visual error feedback
+                matchButton.classList.add('shaking');
+
+                // No match: flip cards back after showing the faces
+                setTimeout(() => {
+                    unflipCards(); // Flips them back
+                    resetTurn();
+                }, 1200);
+            }
+        }
+
+        // Handles matched cards: visually mark them and prevent further interaction
+        function disableCards(card1, card2) {
+            gameBoard.find(c => c.id === card1.id).isMatched = true;
+            gameBoard.find(c => c.id === card2.id).isMatched = true;
+
+            // Remove selected state and add matched state
+            const el1 = gameBoardElement.querySelector(`[data-card-id="${card1.id}"] > .card`);
+            const el2 = gameBoardElement.querySelector(`[data-card-id="${card2.id}"] > .card`);
+            
+            el1.classList.remove('selected');
+            el2.classList.remove('selected');
+
+            el1.classList.add('matched');
+            el2.classList.add('matched');
+        }
+
+        // Handles unmatched cards: flips them back over
+        function unflipCards() {
+            selectedCards.forEach(card => {
+                gameBoard.find(c => c.id === card.id).isFlipped = false;
+                const cardElement = gameBoardElement.querySelector(`[data-card-id="${card.id}"] > .card`);
+                cardElement.classList.remove('flipped', 'selected');
+            });
+        }
+
+        // Resets the temporary state for the next turn
+        function resetTurn() {
+            selectedCards = [];
+            lockBoard = false;
+            // Clear feedback message
+            feedbackMessage.textContent = ""; 
+            feedbackMessage.classList.remove('text-green-600', 'text-nebraska-red');
+            
+            // Clear temporary button styles and return to default styling managed by updateStats
+            matchButton.classList.remove('shaking', 'bg-green-600', 'text-white', 'hover:bg-green-700');
+
+            updateStats();
+        }
+
+        // Handles the end of the game (Win or Lose)
+        function endGame(result) {
+            modalTitle.textContent = "🏆 You Matched Them All!";
+            modalTitle.classList.add('text-green-600');
+            modalMessage.textContent = `Congratulations! You successfully matched all ${cardPairsData.length} pairs. What a memory!`;
+            
+            modalOverlay.classList.remove('hidden');
+            modalOverlay.classList.add('flex');
+            restartButton.focus();
+        }
+
+        // Starts or restarts the game
+        function initializeGame() {
+            selectedCards = [];
+            matchedPairs = 0;
+            lockBoard = false;
+
+            // --- FIX START ---
+            // Ensure matchButton and feedbackMessage are initialized before calling renderBoard/updateStats
+            if (!matchButton) {
+                matchButton = document.getElementById('match-button');
+                feedbackMessage = document.getElementById('feedback-message');
+                matchButton.addEventListener('click', checkMatch);
+            }
+            // --- FIX END ---
+            
+            createBoard();
+            renderBoard();
+
+            modalTitle.classList.remove('text-green-600', 'text-nebraska-red');
+            modalOverlay.classList.remove('flex');
+            modalOverlay.classList.add('hidden');
+            
+            
+            // Clear the feedback message on reset
+            feedbackMessage.textContent = "";
+            feedbackMessage.classList.remove('text-green-600', 'text-nebraska-red');
+            
+            updateStats(); // Initial button and score status
+        }
+
+        // Event listener for the restart button
+        restartButton.addEventListener('click', initializeGame);
+
+        // Initial setup
+        window.onload = initializeGame;
+    </script>
+</body>
+</html>

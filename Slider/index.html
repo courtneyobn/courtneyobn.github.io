@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UNL Music Building Comparison</title>
+    <style>
+        /* --- CSS for the Image Comparison Slider --- */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            background-color: #f0f0f0;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        /* Headline and Instructions */
+        h1 {
+            color: #D00000; /* UNL's official red color */
+            font-size: 1.8em;
+            margin-bottom: 0.5em;
+        }
+        
+        .instructions {
+            color: #333;
+            font-size: 1em;
+            margin-bottom: 20px;
+            padding: 5px 10px;
+            border-bottom: 2px solid #D00000;
+            display: inline-block;
+        }
+
+        /* Slider Wrapper */
+        .image-slider {
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            /* Maintain aspect ratio of the images (approx 1000x667) */
+            padding-top: 66.7%; 
+            user-select: none;
+            cursor: ew-resize; /* Cursor indicating horizontal movement */
+        }
+        
+        .image-slider img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* Ensures the image covers the area */
+        }
+        
+        /* The "After" Image (The one on top that is clipped) */
+        .image-slider .after-image {
+            clip-path: inset(0 0 0 50%); /* Start at 50% clip */
+        }
+
+        /* The Divider/Handle */
+        .image-slider .divider {
+            position: absolute;
+            top: 0;
+            left: 50%; /* Start position */
+            width: 4px;
+            height: 100%;
+            background-color: white;
+            pointer-events: none; /* Allows mouse events to pass through to the slider wrapper */
+            transform: translateX(-50%);
+            z-index: 10;
+        }
+
+        .image-slider .divider::after {
+            content: '↔';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.5em;
+            line-height: 1;
+            padding: 10px;
+            background-color: white;
+            color: #D00000;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        /* Image Labels (Optional but helpful) */
+        .image-label {
+            position: absolute;
+            z-index: 5;
+            padding: 5px 10px;
+            font-size: 0.9em;
+            font-weight: bold;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.6);
+            border-radius: 4px;
+        }
+
+        .label-before {
+            top: 10px;
+            left: 10px;
+        }
+
+        .label-after {
+            top: 10px;
+            right: 10px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Check out the changes to UNL's School of Music from 2014 to 2025</h1>
+        
+        <p class="instructions">
+            **Instructions:** Click and drag the **red-and-white handle** left or right to compare the before and after images. On a mobile device, touch and swipe.
+        </p>
+
+        <div class="image-slider" id="image-slider">
+            
+            <img src="campusoctober2014.jpg" alt="UNL Campus Before (October 2014)" class="before-image">
+            <span class="image-label label-before">October 2014 (Before)</span>
+
+            <img src="campusmarch2025.jpg" alt="UNL Campus After (March 2025)" class="after-image">
+            <span class="image-label label-after">March 2025 (After)</span>
+
+            <div class="divider"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- JavaScript for the Image Comparison Slider ---
+        const slider = document.getElementById('image-slider');
+        const afterImage = slider.querySelector('.after-image');
+        const divider = slider.querySelector('.divider');
+        let isDragging = false;
+
+        // Function to update the clip and divider position
+        function updateSlider(e) {
+            // Get the bounding box of the slider container
+            const rect = slider.getBoundingClientRect();
+            
+            // Determine the x position of the mouse/touch event within the container
+            // Use clientX for mouse/touch, fallback to 0
+            let clientX = e.clientX || (e.touches ? e.touches[0].clientX : 0);
+            
+            // Calculate the position relative to the left edge of the slider
+            let positionX = clientX - rect.left;
+
+            // Ensure the position is clamped between 0 and the full width
+            // This prevents the slider from being dragged outside the bounds
+            positionX = Math.max(0, Math.min(positionX, rect.width));
+
+            // Convert position to a percentage for CSS clip-path and divider position
+            const percent = (positionX / rect.width) * 100;
+
+            // Update the 'after' image clip-path
+            // clip-path: inset(top right bottom left)
+            // 0% (left) to 'percent' (right) of the image is shown
+            afterImage.style.clipPath = `inset(0 ${100 - percent}% 0 0)`;
+            
+            // Update the divider position
+            divider.style.left = `${percent}%`;
+        }
+        
+        // --- Event Listeners for Dragging (Desktop) ---
+        slider.addEventListener('mousedown', (e) => {
+            e.preventDefault(); // Prevent default drag behavior
+            isDragging = true;
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                updateSlider(e);
+            }
+        });
+
+        // --- Event Listeners for Swiping (Mobile) ---
+        slider.addEventListener('touchstart', (e) => {
+            isDragging = true;
+            updateSlider(e); // Update immediately on touchstart
+        }, { passive: true }); // Use passive listener for better scroll performance
+
+        document.addEventListener('touchend', () => {
+            isDragging = false;
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            if (isDragging) {
+                updateSlider(e);
+            }
+        }, { passive: false }); // Use non-passive for touchmove to potentially prevent scrolling
+
+        // Initialize the slider position to the center on load
+        window.addEventListener('load', () => {
+            // Simulate a 'mousemove' event at the center to initialize styles
+            const rect = slider.getBoundingClientRect();
+            const initialEvent = { clientX: rect.left + (rect.width / 2) };
+            updateSlider(initialEvent);
+        });
+    </script>
+</body>
+</html>

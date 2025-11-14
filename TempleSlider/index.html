@@ -132,10 +132,10 @@
         <div class="image-slider" id="image-slider">
             
             <img src="TempleBuilding1920.jpg" alt="UNL Temple Building (1920's)" class="before-image">
-            <span class="image-label label-before">1920's (Before)</span>
+            <span class="image-label label-before">1920's</span>
 
-            <img src="TempleBuilding2025.jpeg" alt="UNL Temple Building (2025)" class="after-image">
-            <span class="image-label label-after">2025 (After)</span>
+            <img src="TempleBuilding2025.jpg" alt="UNL Temple Building (2025)" class="after-image">
+            <span class="image-label label-after">2025</span>
 
             <div class="divider"></div>
         </div>
@@ -165,4 +165,53 @@
             const percent = (positionX / rect.width) * 100;
 
             // Update the 'after' image clip-path: inset(top right bottom left)
-            // This shows the 'after' image from the left (0%)
+            afterImage.style.clipPath = `inset(0 ${100 - percent}% 0 0)`;
+            
+            // Update the divider position
+            divider.style.left = `${percent}%`;
+        }
+        
+        // --- Event Listeners for Dragging (Desktop) ---
+        slider.addEventListener('mousedown', (e) => {
+            e.preventDefault(); 
+            isDragging = true;
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                updateSlider(e);
+            }
+        });
+
+        // --- Event Listeners for Swiping (Mobile) ---
+        slider.addEventListener('touchstart', (e) => {
+            isDragging = true;
+            updateSlider(e); 
+        }, { passive: true });
+
+        document.addEventListener('touchend', () => {
+            isDragging = false;
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            if (isDragging) {
+                // Prevent default scrolling to ensure the slider moves
+                e.preventDefault(); 
+                updateSlider(e);
+            }
+        }, { passive: false }); 
+
+        // Initialize the slider position to the center on load
+        window.addEventListener('load', () => {
+            const rect = slider.getBoundingClientRect();
+            // Simulate an event at the center for initial style setup
+            const initialEvent = { clientX: rect.left + (rect.width / 2) };
+            updateSlider(initialEvent);
+        });
+    </script>
+</body>
+</html>

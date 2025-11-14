@@ -28,7 +28,7 @@
             color: #D00000; /* UNL's official red color */
             font-size: 1.8em;
             margin-bottom: 0.5em;
-            /* Changed from 'white-space: nowrap;' to allow wrapping */
+            /* Allows the headline to wrap into two lines */
             white-space: normal; 
             line-height: 1.3;
         }
@@ -47,7 +47,7 @@
             position: relative;
             overflow: hidden;
             width: 100%;
-            /* Set height based on image aspect ratio for responsiveness (approx 66.7%) */
+            /* Set height based on image aspect ratio for responsiveness (approx 66.7% for your images) */
             padding-top: 66.7%; 
             user-select: none;
             cursor: ew-resize; /* Cursor indicating horizontal movement */
@@ -165,53 +165,4 @@
             const percent = (positionX / rect.width) * 100;
 
             // Update the 'after' image clip-path: inset(top right bottom left)
-            afterImage.style.clipPath = `inset(0 ${100 - percent}% 0 0)`;
-            
-            // Update the divider position
-            divider.style.left = `${percent}%`;
-        }
-        
-        // --- Event Listeners for Dragging (Desktop) ---
-        slider.addEventListener('mousedown', (e) => {
-            e.preventDefault(); 
-            isDragging = true;
-        });
-
-        document.addEventListener('mouseup', () => {
-            isDragging = false;
-        });
-
-        document.addEventListener('mousemove', (e) => {
-            if (isDragging) {
-                updateSlider(e);
-            }
-        });
-
-        // --- Event Listeners for Swiping (Mobile) ---
-        slider.addEventListener('touchstart', (e) => {
-            isDragging = true;
-            updateSlider(e); 
-        }, { passive: true });
-
-        document.addEventListener('touchend', () => {
-            isDragging = false;
-        });
-
-        document.addEventListener('touchmove', (e) => {
-            if (isDragging) {
-                // Prevent default scrolling to ensure the slider moves
-                e.preventDefault(); 
-                updateSlider(e);
-            }
-        }, { passive: false }); 
-
-        // Initialize the slider position to the center on load
-        window.addEventListener('load', () => {
-            const rect = slider.getBoundingClientRect();
-            // Simulate an event at the center for initial style setup
-            const initialEvent = { clientX: rect.left + (rect.width / 2) };
-            updateSlider(initialEvent);
-        });
-    </script>
-</body>
-</html>
+            // This shows the 'after' image from the left (0%)

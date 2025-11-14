@@ -3,245 +3,216 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Temple Building Changes: 1920s to 2025</title>
+    <title>UNL Temple Building Comparison</title>
     <style>
-        /* General Reset and Container Styling */
+        /* --- CSS for the Image Comparison Slider --- */
         body {
-            font-family: Arial, sans-serif;
             margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            background-color: #f4f4f4;
-        }
-
-        .header-container {
-            width: 100%;
-            max-width: 900px;
-            margin-bottom: 20px;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            background-color: #f0f0f0;
             text-align: center;
         }
 
+        .container {
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        /* Headline and Instructions */
         h1 {
-            font-size: 1.5em;
-            color: #333;
-            margin: 0 0 5px 0;
+            color: #D00000; /* UNL's official red color */
+            font-size: 1.8em;
+            margin-bottom: 0.5em;
+            white-space: nowrap; /* Ensures the headline stays on one line */
+            overflow: hidden; /* Hides overflow if space is too narrow */
+            text-overflow: ellipsis; /* Adds ... if text is cut off */
         }
-
+        
         .instructions {
-            font-size: 0.9em;
-            color: #666;
-            margin-top: 0;
+            color: #333;
+            font-size: 1em;
+            margin-bottom: 20px;
+            padding: 5px 10px;
+            border-bottom: 2px solid #D00000;
+            display: inline-block;
         }
 
-        /* Slider Specific Styles */
-        .slider-container {
-            /* Set a max-width for the slider and use aspect ratio for consistent height */
-            max-width: 900px; 
-            width: 100%;
+        /* Slider Wrapper */
+        .image-slider {
             position: relative;
-            /* Use a 4:3 aspect ratio for the image container */
-            aspect-ratio: 4 / 3;
             overflow: hidden;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-            border: 1px solid #ccc;
-            cursor: grab; /* Cursor hint for desktop */
-            user-select: none; /* Prevents selecting image/text while dragging */
+            width: 100%;
+            /* Set height based on image aspect ratio for responsiveness (approx 66.7%) */
+            padding-top: 66.7%; 
+            user-select: none;
+            cursor: ew-resize; /* Cursor indicating horizontal movement */
         }
-
-        .slider-container:active {
-            cursor: grabbing;
-        }
-
-        /* Image Styling */
-        .slider-image {
+        
+        .image-slider img {
             position: absolute;
             top: 0;
             left: 0;
-            /* The image must fill the container */
             width: 100%;
             height: 100%;
-            /* Ensure the image covers the area without distortion */
-            object-fit: cover; 
-            pointer-events: none; /* Allows dragging through the image */
+            object-fit: cover; /* Ensures the image covers the area */
+            max-width: none; 
+        }
+        
+        /* The "After" Image (The one on top that is clipped) */
+        .image-slider .after-image {
+            clip-path: inset(0 0 0 50%); /* Start at 50% clip */
         }
 
-        .image-before {
-            /* This image is the one that gets clipped/resized */
-            width: 50%; /* Initial split at 50% */
-            z-index: 2; /* Ensure it's on top of the 'after' image */
-        }
-
-        /* Handle Styling */
-        .slider-handle {
-            /* The vertical bar separating the two images */
+        /* The Divider/Handle */
+        .image-slider .divider {
             position: absolute;
             top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            height: 100%;
+            left: 50%; /* Start position */
             width: 4px;
-            background-color: #fff;
-            z-index: 3;
-            cursor: inherit;
+            height: 100%;
+            background-color: white;
+            pointer-events: none; /* Allows mouse events to pass through to the slider wrapper */
+            transform: translateX(-50%);
+            z-index: 10;
         }
 
-        .slider-handle::after {
-            /* The circle icon on the handle */
+        .image-slider .divider::after {
             content: '↔';
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 40px;
-            height: 40px;
-            background-color: #ff5722;
-            color: white;
             font-size: 1.5em;
-            text-align: center;
-            line-height: 40px;
+            line-height: 1;
+            padding: 10px;
+            background-color: white;
+            color: #D00000;
             border-radius: 50%;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-            pointer-events: none;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
         }
         
-        /* Optional labels for clarity */
-        .label {
+        /* Image Labels */
+        .image-label {
             position: absolute;
+            z-index: 5;
             padding: 5px 10px;
+            font-size: 0.9em;
+            font-weight: bold;
             color: white;
             background-color: rgba(0, 0, 0, 0.6);
-            border-radius: 3px;
-            font-size: 0.9em;
-            z-index: 4;
-            user-select: none;
+            border-radius: 4px;
         }
+
         .label-before {
             top: 10px;
             left: 10px;
         }
+
         .label-after {
             top: 10px;
             right: 10px;
         }
 
-        /* Mobile Adjustments */
-        @media (max-width: 600px) {
-            body {
-                padding: 10px;
-            }
-            h1 {
-                font-size: 1.2em;
-            }
-            .instructions {
-                font-size: 0.8em;
-            }
-            .slider-handle::after {
-                width: 30px;
-                height: 30px;
-                font-size: 1.2em;
-                line-height: 30px;
-            }
-        }
     </style>
 </head>
 <body>
 
-    <div class="header-container">
-        <h1>Check out the changes to the Temple Building at the University of Nebraska-Lincoln from the 1920's till 2025</h1>
-        <p class="instructions">**Instructions:** Drag the central arrow left or right to reveal the full 'before' (1920s) or 'after' (2025) image.</p>
-    </div>
-
-    <div class="slider-container" id="imageSlider">
-        <img src="TempleBuilding2025.jpeg" alt="Temple Building 2025" class="slider-image image-after"> 
+    <div class="container">
+        <h1>Check out the changes to the Temple Building on the University of Nebraska-Lincoln from the 1920's till 2025</h1>
         
-        <div class="image-before" id="imageBefore">
-             <img src="TempleBuilding1920.jpg" alt="Temple Building 1920s" class="slider-image">
-             <span class="label label-before">1920's</span>
+        <p class="instructions">
+            **Instructions:** Click and drag the **red-and-white handle** left or right to compare the historical and modern views. On a mobile device, touch and swipe.
+        </p>
+
+        <div class="image-slider" id="image-slider">
+            
+            <img src="TempleBuilding1920.jpg" alt="UNL Temple Building (1920's)" class="before-image">
+            <span class="image-label label-before">1920's (Before)</span>
+
+            <img src="TempleBuilding2025.jpg" alt="UNL Temple Building (2025)" class="after-image">
+            <span class="image-label label-after">2025 (After)</span>
+
+            <div class="divider"></div>
         </div>
-        
-        <span class="label label-after">2025</span>
-
-        <div class="slider-handle" id="sliderHandle"></div>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const container = document.getElementById('imageSlider');
-            const handle = document.getElementById('sliderHandle');
-            const beforeImageWrapper = document.getElementById('imageBefore');
-            
-            let isDragging = false;
-            
-            // --- Helper Functions ---
-            
-            // Get the X coordinate of the pointer (handles both mouse and touch)
-            function getPointerX(e) {
-                // Check if e is a touch event or a mouse event
-                return e.touches ? e.touches[0].clientX : e.clientX;
-            }
-            
-            // Set the width of the before image wrapper and the handle's position
-            function setComparison(x) {
-                // Get the container's left edge and width
-                const containerRect = container.getBoundingClientRect();
-                const containerLeft = containerRect.left;
-                const containerWidth = containerRect.width;
-                
-                // Calculate new position relative to the container's left edge
-                let newX = x - containerLeft;
-                
-                // Clamp the position to stay within the container boundaries (0 to containerWidth)
-                if (newX < 0) newX = 0;
-                if (newX > containerWidth) newX = containerWidth;
-                
-                // Set the width of the 'before' image wrapper (which clips the image)
-                beforeImageWrapper.style.width = `${newX}px`;
-                
-                // Set the handle's position
-                handle.style.left = `${newX}px`;
-            }
-            
-            // --- Event Handlers for Dragging (Mouse & Touch) ---
+        // --- JavaScript for the Image Comparison Slider ---
+        const slider = document.getElementById('image-slider');
+        const afterImage = slider.querySelector('.after-image');
+        const divider = slider.querySelector('.divider');
+        let isDragging = false;
 
-            function startDrag(e) {
-                isDragging = true;
-                container.classList.add('grabbing'); 
-                // Prevent default behavior to avoid text selection, etc., especially important for touch
+        // Function to update the clip and divider position
+        function updateSlider(e) {
+            const rect = slider.getBoundingClientRect();
+            
+            // Get clientX from mouse or touch event
+            let clientX = e.clientX || (e.touches ? e.touches[0].clientX : 0);
+            
+            // Calculate relative position within the slider
+            let positionX = clientX - rect.left;
+
+            // Clamp position between 0 and the full width
+            positionX = Math.max(0, Math.min(positionX, rect.width));
+
+            // Convert position to a percentage
+            const percent = (positionX / rect.width) * 100;
+
+            // Update the 'after' image clip-path: inset(top right bottom left)
+            // Shows content from the left up to the divider position
+            afterImage.style.clipPath = `inset(0 ${100 - percent}% 0 0)`;
+            
+            // Update the divider position
+            divider.style.left = `${percent}%`;
+        }
+        
+        // --- Event Listeners for Dragging (Desktop) ---
+        slider.addEventListener('mousedown', (e) => {
+            e.preventDefault(); 
+            isDragging = true;
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                updateSlider(e);
+            }
+        });
+
+        // --- Event Listeners for Swiping (Mobile) ---
+        slider.addEventListener('touchstart', (e) => {
+            isDragging = true;
+            updateSlider(e); 
+        }, { passive: true });
+
+        document.addEventListener('touchend', () => {
+            isDragging = false;
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            if (isDragging) {
+                // Prevent default scrolling to ensure the slider moves
                 e.preventDefault(); 
+                updateSlider(e);
             }
+        }, { passive: false }); 
 
-            function drag(e) {
-                if (!isDragging) return;
-                
-                // The main logic to update the slider position
-                setComparison(getPointerX(e));
-            }
-
-            function endDrag() {
-                isDragging = false;
-                container.classList.remove('grabbing');
-            }
-            
-            // Initial position (center)
-            const initialX = container.getBoundingClientRect().left + (container.getBoundingClientRect().width / 2);
-            setComparison(initialX);
-            
-            // --- Event Listeners for Desktop (Mouse) ---
-            handle.addEventListener('mousedown', startDrag);
-            container.addEventListener('mousemove', drag);
-            container.addEventListener('mouseup', endDrag);
-            // Listen on the document to stop drag if mouse is released outside the container
-            document.addEventListener('mouseup', endDrag); 
-
-            // --- Event Listeners for Mobile (Touch) ---
-            handle.addEventListener('touchstart', startDrag, {passive: false}); // Use {passive: false} to allow e.preventDefault()
-            container.addEventListener('touchmove', drag, {passive: false});
-            container.addEventListener('touchend', endDrag);
-            container.addEventListener('touchcancel', endDrag);
+        // Initialize the slider position to the center on load
+        window.addEventListener('load', () => {
+            const rect = slider.getBoundingClientRect();
+            // Simulate an event at the center for initial style setup
+            const initialEvent = { clientX: rect.left + (rect.width / 2) };
+            updateSlider(initialEvent);
         });
     </script>
-
 </body>
 </html>

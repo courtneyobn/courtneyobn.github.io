@@ -28,9 +28,9 @@
             color: #D00000; /* UNL's official red color */
             font-size: 1.8em;
             margin-bottom: 0.5em;
-            white-space: nowrap; /* Ensures the headline stays on one line */
-            overflow: hidden; /* Hides overflow if space is too narrow */
-            text-overflow: ellipsis; /* Adds ... if text is cut off */
+            /* Changed from 'white-space: nowrap;' to allow wrapping */
+            white-space: normal; 
+            line-height: 1.3;
         }
         
         .instructions {
@@ -165,7 +165,6 @@
             const percent = (positionX / rect.width) * 100;
 
             // Update the 'after' image clip-path: inset(top right bottom left)
-            // Shows content from the left up to the divider position
             afterImage.style.clipPath = `inset(0 ${100 - percent}% 0 0)`;
             
             // Update the divider position

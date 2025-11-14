@@ -127,4 +127,121 @@
         }
 
         /* Mobile Adjustments */
-        @media (max-width: 600
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            h1 {
+                font-size: 1.2em;
+            }
+            .instructions {
+                font-size: 0.8em;
+            }
+            .slider-handle::after {
+                width: 30px;
+                height: 30px;
+                font-size: 1.2em;
+                line-height: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-container">
+        <h1>Check out the changes to the Temple Building at the University of Nebraska-Lincoln from the 1920's till 2025</h1>
+        <p class="instructions">**Instructions:** Drag the central arrow left or right to reveal the full 'before' (1920s) or 'after' (2025) image.</p>
+    </div>
+
+    <div class="slider-container" id="imageSlider">
+        <img src="TempleBuilding2025.jpg" alt="Temple Building 2025" class="slider-image image-after"> 
+        
+        <div class="image-before" id="imageBefore">
+             <img src="TempleBuilding1920.jpg" alt="Temple Building 1920s" class="slider-image">
+             <span class="label label-before">1920's</span>
+        </div>
+        
+        <span class="label label-after">2025</span>
+
+        <div class="slider-handle" id="sliderHandle"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('imageSlider');
+            const handle = document.getElementById('sliderHandle');
+            const beforeImageWrapper = document.getElementById('imageBefore');
+            
+            let isDragging = false;
+            
+            // --- Helper Functions ---
+            
+            // Get the X coordinate of the pointer (handles both mouse and touch)
+            function getPointerX(e) {
+                // Check if e is a touch event or a mouse event
+                return e.touches ? e.touches[0].clientX : e.clientX;
+            }
+            
+            // Set the width of the before image wrapper and the handle's position
+            function setComparison(x) {
+                // Get the container's left edge and width
+                const containerRect = container.getBoundingClientRect();
+                const containerLeft = containerRect.left;
+                const containerWidth = containerRect.width;
+                
+                // Calculate new position relative to the container's left edge
+                let newX = x - containerLeft;
+                
+                // Clamp the position to stay within the container boundaries (0 to containerWidth)
+                if (newX < 0) newX = 0;
+                if (newX > containerWidth) newX = containerWidth;
+                
+                // Set the width of the 'before' image wrapper (which clips the image)
+                beforeImageWrapper.style.width = `${newX}px`;
+                
+                // Set the handle's position
+                handle.style.left = `${newX}px`;
+            }
+            
+            // --- Event Handlers for Dragging (Mouse & Touch) ---
+
+            function startDrag(e) {
+                isDragging = true;
+                container.classList.add('grabbing'); 
+                // Prevent default behavior to avoid text selection, etc., especially important for touch
+                e.preventDefault(); 
+            }
+
+            function drag(e) {
+                if (!isDragging) return;
+                
+                // The main logic to update the slider position
+                setComparison(getPointerX(e));
+            }
+
+            function endDrag() {
+                isDragging = false;
+                container.classList.remove('grabbing');
+            }
+            
+            // Initial position (center)
+            const initialX = container.getBoundingClientRect().left + (container.getBoundingClientRect().width / 2);
+            setComparison(initialX);
+            
+            // --- Event Listeners for Desktop (Mouse) ---
+            handle.addEventListener('mousedown', startDrag);
+            container.addEventListener('mousemove', drag);
+            container.addEventListener('mouseup', endDrag);
+            // Listen on the document to stop drag if mouse is released outside the container
+            document.addEventListener('mouseup', endDrag); 
+
+            // --- Event Listeners for Mobile (Touch) ---
+            handle.addEventListener('touchstart', startDrag, {passive: false}); // Use {passive: false} to allow e.preventDefault()
+            container.addEventListener('touchmove', drag, {passive: false});
+            container.addEventListener('touchend', endDrag);
+            container.addEventListener('touchcancel', endDrag);
+        });
+    </script>
+
+</body>
+</html>
